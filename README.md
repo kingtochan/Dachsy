@@ -135,4 +135,4 @@ To have Dachsy launch automatically:
 
 ## License
 
-MIT
+Apache-2.0
