@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var dogImage: NSImage? = nil
     @State private var imageScale: CGFloat = 1.0
     @State private var showSettings = false
+    @State private var chatInput: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,9 +20,13 @@ struct ContentView: View {
 
             actionButtons
                 .padding(.horizontal, 12)
-                .padding(.bottom, 16)
+                .padding(.bottom, 10)
+
+            chatInputRow
+                .padding(.horizontal, 12)
+                .padding(.bottom, 14)
         }
-        .frame(width: 280, height: 380)
+        .frame(width: 280, height: 430)
         .background(
             LinearGradient(
                 colors: [
@@ -115,6 +120,52 @@ struct ContentView: View {
             ActionButton(icon: "❤️", label: "Pet") { viewModel.pet() }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Chat Input
+
+    private var chatInputRow: some View {
+        HStack(spacing: 8) {
+            TextField("Say something to Dachsy...", text: $chatInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .onSubmit { sendChat() }
+
+            Button(action: sendChat) {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting
+                                     ? .white.opacity(0.3)
+                                     : .white.opacity(0.85))
+                    .padding(7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.white.opacity(
+                                chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting ? 0.06 : 0.18
+                            ))
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting)
+        }
+    }
+
+    private func sendChat() {
+        let msg = chatInput.trimmingCharacters(in: .whitespaces)
+        guard !msg.isEmpty, !viewModel.isInteracting else { return }
+        viewModel.chat(message: msg)
+        chatInput = ""
     }
 
     // MARK: - Image Loading

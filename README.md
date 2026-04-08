@@ -11,6 +11,7 @@ A macOS desktop pet — an interactive sausage dog (dachshund) that lives in a w
 - 10 animated states: happy, hungry, tired, sleeping, excited, dirty, sad, playing, feeding, and default
 - Stat system: Hunger, Happiness, Energy, and Cleanliness decay over time
 - Interactive actions: Feed, Play, Clean, and Pet
+- **Chat box** — type a message and Dachsy replies; positive messages boost happiness, negative ones make him sad
 - Speech bubbles with reactions
 - Optional AI responses via **Claude API** or a local **Ollama** model
 - Standard macOS window — minimize, close, drag to reposition

@@ -6,7 +6,6 @@ import SwiftUI
 
 actor AIService {
     static func generateResponse(provider: String, apiKey: String, ollamaModel: String, scenario: DogScenario, stats: DogStats) async -> String {
-        
         let systemPrompt = """
         You are Dachsy, an adorable sausage dog (dachshund) desktop pet with a big personality.
         Respond with short, expressive, dog-like reactions. Keep responses under 60 characters.
@@ -14,42 +13,43 @@ actor AIService {
         Current state: \(scenario.rawValue).
         Hunger: \(Int(stats.hunger))%, Happiness: \(Int(stats.happiness))%, Energy: \(Int(stats.energy))%, Cleanliness: \(Int(stats.cleanliness))%.
         """
-        
+        let userContent = "React to this moment as Dachsy!"
+
         if provider == "Ollama" {
-            return await fetchOllama(model: ollamaModel, system: systemPrompt, scenario: scenario)
+            return await fetchOllama(model: ollamaModel, system: systemPrompt, userContent: userContent, scenario: scenario)
         } else {
             guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
                 return scenario.responses.randomElement() ?? "Woof!"
             }
-            return await fetchClaude(apiKey: apiKey, system: systemPrompt, scenario: scenario)
+            return await fetchClaude(apiKey: apiKey, system: systemPrompt, userContent: userContent, scenario: scenario)
         }
     }
-    
+
     // --- OLLAMA LOGIC ---
-    private static func fetchOllama(model: String, system: String, scenario: DogScenario) async -> String {
+    private static func fetchOllama(model: String, system: String, userContent: String, scenario: DogScenario) async -> String {
         guard let url = URL(string: "http://localhost:11434/api/chat") else {
             return scenario.responses.randomElement() ?? "Woof!"
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 15 // Ollama might take a bit longer to generate
-        
+        request.timeoutInterval = 15
+
         let body: [String: Any] = [
             "model": model.isEmpty ? "llama3" : model,
             "stream": false,
             "messages": [
                 ["role": "system", "content": system],
-                ["role": "user", "content": "React to this moment as Dachsy!"]
+                ["role": "user", "content": userContent]
             ]
         ]
-        
+
         guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else {
             return scenario.responses.randomElement() ?? "Woof!"
         }
         request.httpBody = httpBody
-        
+
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -59,13 +59,12 @@ actor AIService {
             }
         } catch {
             print("Ollama Error: \(error.localizedDescription)")
-            // Fall through to default
         }
         return scenario.responses.randomElement() ?? "Woof!"
     }
-    
+
     // --- CLAUDE LOGIC ---
-    private static func fetchClaude(apiKey: String, system: String, scenario: DogScenario) async -> String {
+    private static func fetchClaude(apiKey: String, system: String, userContent: String, scenario: DogScenario) async -> String {
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
             return scenario.responses.randomElement() ?? "Woof!"
         }
@@ -81,7 +80,7 @@ actor AIService {
             "model": "claude-haiku-4-5-20251001",
             "max_tokens": 80,
             "system": system,
-            "messages": [["role": "user", "content": "React to this moment as Dachsy!"]]
+            "messages": [["role": "user", "content": userContent]]
         ]
 
         guard let httpBody = try? JSONSerialization.data(withJSONObject: body) else {
@@ -103,6 +102,48 @@ actor AIService {
     }
 }
 
+// MARK: - Chat Response (structured: text + mood delta)
+
+extension AIService {
+    static func generateChatResponse(provider: String, apiKey: String, ollamaModel: String, userMessage: String, stats: DogStats) async -> (text: String, happinessDelta: Double) {
+        let systemPrompt = """
+        You are Dachsy, an adorable sausage dog (dachshund) desktop pet with a big personality.
+        The human is talking to you. Analyse whether their message is positive, negative, or neutral toward you.
+        Reply ONLY with valid JSON, no extra text:
+        {"text": "<your dog reaction, under 60 chars, use dog sounds woof/bork/arf, *actions*, 1-2 emojis>", "mood": <integer -15 to 15>}
+        mood > 0 for kind/fun/complimentary messages, mood < 0 for mean/rude/sad messages, 0 for neutral.
+        Hunger: \(Int(stats.hunger))%, Happiness: \(Int(stats.happiness))%, Energy: \(Int(stats.energy))%, Cleanliness: \(Int(stats.cleanliness))%.
+        """
+        let userContent = "The human said: \"\(userMessage)\""
+
+        let rawText: String
+        if provider == "Ollama" {
+            rawText = await fetchOllama(model: ollamaModel, system: systemPrompt, userContent: userContent, scenario: .default)
+        } else {
+            guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+                return (DogScenario.default.responses.randomElement() ?? "Woof!", 0)
+            }
+            rawText = await fetchClaude(apiKey: apiKey, system: systemPrompt, userContent: userContent, scenario: .default)
+        }
+
+        // Parse JSON — strip markdown fences if the model wrapped it
+        let stripped = rawText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let data = stripped.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let text = json["text"] as? String,
+           let mood = json["mood"] as? Int {
+            return (text, Double(mood))
+        }
+        // Fallback: raw text as speech, no mood change
+        return (rawText, 0)
+    }
+}
+
 // MARK: - Dog ViewModel
 
 @MainActor
@@ -116,7 +157,7 @@ final class DogViewModel: ObservableObject {
     // New Settings Variables
     @Published var aiProvider: String = UserDefaults.standard.string(forKey: "aiProvider") ?? "Claude"
     @Published var apiKey: String = UserDefaults.standard.string(forKey: "claudeApiKey") ?? ""
-    @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2:1b"
+    @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "gemma4:e2b"
 
     private var decayTimer: Timer?
     private var speechTimer: Timer?
@@ -214,12 +255,11 @@ final class DogViewModel: ObservableObject {
     // MARK: - Speech
 
     private func fetchAndSpeak(scenario: DogScenario) {
-        // Capture current settings safely for the background task
         let provider = aiProvider
         let key = apiKey
         let model = ollamaModel
         let capturedStats = stats
-        
+
         isLoadingResponse = true
         Task {
             let text = await AIService.generateResponse(
@@ -229,6 +269,30 @@ final class DogViewModel: ObservableObject {
                 scenario: scenario,
                 stats: capturedStats
             )
+            self.isLoadingResponse = false
+            self.speak(text: text)
+        }
+    }
+
+    func chat(message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !isInteracting else { return }
+
+        let provider = aiProvider
+        let key = apiKey
+        let model = ollamaModel
+        let capturedStats = stats
+
+        isLoadingResponse = true
+        Task {
+            let (text, delta) = await AIService.generateChatResponse(
+                provider: provider,
+                apiKey: key,
+                ollamaModel: model,
+                userMessage: trimmed,
+                stats: capturedStats
+            )
+            self.stats.happiness = min(100, max(0, self.stats.happiness + (delta == 0 ? 2 : delta)))
             self.isLoadingResponse = false
             self.speak(text: text)
         }
