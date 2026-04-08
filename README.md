@@ -113,14 +113,12 @@ Without an AI key, Dachsy uses built-in pre-written reactions. To enable live AI
 
 ```
 Sources/PetWidget/
-├── PetWidgetApp.swift     — app entry point, window configuration
-├── Models.swift           — dog states, stats, image loading
-├── DogViewModel.swift     — game logic, AI service, stat decay
-├── ContentView.swift      — main UI
-└── Views.swift            — reusable components (stat bars, speech bubble, buttons)
-
-Sources/PetWidget/Resources/
-└── sausage_dog_scenarios/ — 10 dog state images
+├── PetWidgetApp.swift               — app entry point, window configuration
+├── Models.swift                     — dog states, stats, image loading
+├── DogViewModel.swift               — game logic, AI service, stat decay
+├── ContentView.swift                — main UI
+└── Views.swift                      — reusable components (stat bars, speech bubble, buttons)
+└── Resources/sausage_dog_scenarios/ — 10 dog state images
 ```
 
 ---
