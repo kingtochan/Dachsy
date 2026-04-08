@@ -9,7 +9,7 @@ let package = Package(
             name: "PetWidget",
             path: "Sources/PetWidget",
             resources: [
-                .copy("Resources/sausage_dog_scenarios")
+                .process("Resources")
             ]
         )
     ]

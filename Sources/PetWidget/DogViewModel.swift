@@ -183,6 +183,7 @@ final class DogViewModel: ObservableObject {
         stats.happiness = min(100, stats.happiness + 28)
         stats.energy = max(0, stats.energy - 22)
         stats.hunger = max(0, stats.hunger - 8)
+        stats.cleanliness = max(0, stats.cleanliness - 5)
         performInteraction(scenario: .playing, duration: 2.5)
     }
 

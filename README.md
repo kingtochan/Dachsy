@@ -58,6 +58,7 @@ swift build -c release
 mkdir -p Dachsy.app/Contents/MacOS Dachsy.app/Contents/Resources
 cp .build/release/PetWidget Dachsy.app/Contents/MacOS/Dachsy
 cp -r Sources/PetWidget/Resources/sausage_dog_scenarios Dachsy.app/Contents/Resources/
+cp Sources/PetWidget/Resources/AppIcon.icns "Dachsy.app/Contents/Resources/"
 
 cat > Dachsy.app/Contents/Info.plist << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -75,6 +76,7 @@ cat > Dachsy.app/Contents/Info.plist << 'EOF'
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
 </dict>
 </plist>
 EOF
