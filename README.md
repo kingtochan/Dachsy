@@ -21,7 +21,7 @@ A macOS desktop pet — an interactive sausage dog (dachshund) that lives in a w
 
 > Requires macOS 14 or later (Apple Silicon or Intel)
 
-1. Download [Dachsy.app]9https://github.com/kingtochan/Dachsy/releases/) from this repository
+1. Download [Dachsy.app](https://github.com/kingtochan/Dachsy/releases/) from this repository
 2. Drag it to your **Applications** folder
 3. Right-click the app and choose **Open** (required the first time for apps not from the App Store)
 4. Click **Open** in the security dialog
