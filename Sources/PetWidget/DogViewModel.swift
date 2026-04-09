@@ -157,7 +157,7 @@ final class DogViewModel: ObservableObject {
     // New Settings Variables
     @Published var aiProvider: String = UserDefaults.standard.string(forKey: "aiProvider") ?? "Claude"
     @Published var apiKey: String = UserDefaults.standard.string(forKey: "claudeApiKey") ?? ""
-    @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "gemma4:e2b"
+    @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2:3b"
 
     private var decayTimer: Timer?
     private var speechTimer: Timer?
