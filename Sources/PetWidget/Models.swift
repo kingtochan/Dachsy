@@ -8,11 +8,13 @@ enum DogScenario: String, CaseIterable {
     case dirty = "dirty"
     case excited = "excited"
     case feeding = "feeding"
+    case focus = "focus"
     case happy = "happy"
     case hungry = "hungry"
     case playing = "playing"
     case sad = "sad"
     case sleeping = "sleeping"
+    case studying = "studying"
     case tired = "tired"
 
     var responses: [String] {
@@ -25,6 +27,8 @@ enum DogScenario: String, CaseIterable {
             return ["WOOF WOOF! 🎉", "This is the BEST day ever!", "*zooms around the room*", "YAY YAY YAY! 🐾"]
         case .feeding:
             return ["NOM NOM NOM! 😋", "*chews happily*", "Delicious!! More?", "FOOD IS LIFE! 🍖"]
+        case .focus:
+            return ["*intense focus* 🔥", "Almost there... *concentrates*", "In the zone! 💪", "Don't disturb... focusing! 🎯"]
         case .happy:
             return ["*happy wiggle* 😊", "Life is sooo good!", "I love you! 🐾", "Woof woof! ❤️"]
         case .hungry:
@@ -35,6 +39,8 @@ enum DogScenario: String, CaseIterable {
             return ["*whimpers softly* 😢", "Pay attention to me...", "I miss you so much...", "*droopy ears* 😔"]
         case .sleeping:
             return ["Zzz... 💤", "*snores softly*", "Not now... sleepy...", "Zzzzzzz 💤"]
+        case .studying:
+            return ["*hits the books* 📚", "Woof... studying hard!", "*concentrates intently* 🎯", "So much to learn... 📖"]
         case .tired:
             return ["*big yawn* 😴", "So... sleepy...", "Need nap soon...", "*droopy eyes*"]
         }

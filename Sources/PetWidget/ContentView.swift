@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var imageScale: CGFloat = 1.0
     @State private var showSettings = false
     @State private var chatInput: String = ""
+    @State private var showPomodoroTimer: Bool = false
+    @State private var pomodoroSetMinutes: Int = 25
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,9 +26,20 @@ struct ContentView: View {
 
             chatInputRow
                 .padding(.horizontal, 12)
-                .padding(.bottom, 14)
+                .padding(.bottom, showPomodoroTimer ? 8 : 14)
+
+            if showPomodoroTimer {
+                Divider()
+                    .background(Color.white.opacity(0.15))
+                    .padding(.horizontal, 12)
+                pomodoroSection
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
-        .frame(width: 280, height: 430)
+        .frame(width: 280, height: showPomodoroTimer ? 540 : 430)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showPomodoroTimer)
         .background(
             LinearGradient(
                 colors: [
@@ -50,6 +63,13 @@ struct ContentView: View {
         }
         .onAppear { loadImage() }
         .onChange(of: viewModel.currentScenario) { _, _ in loadImage(bounce: true) }
+        .onChange(of: viewModel.isPomodoroRunning) { _, isRunning in
+            if !isRunning && viewModel.pomodoroTimeRemaining == nil && showPomodoroTimer {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    showPomodoroTimer = false
+                }
+            }
+        }
         .sheet(isPresented: $showSettings) {
             SettingsView(viewModel: viewModel)
         }
@@ -111,7 +131,7 @@ struct ContentView: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ActionButton(icon: "🍖", label: "Feed",
                          action: { viewModel.feed() },
                          disabled: viewModel.stats.energy <= 15)
@@ -124,8 +144,74 @@ struct ContentView: View {
             ActionButton(icon: "❤️", label: "Pet",
                          action: { viewModel.pet() },
                          disabled: viewModel.stats.energy <= 15)
+            ActionButton(icon: "💼", label: "Work",
+                         action: {
+                             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                 showPomodoroTimer.toggle()
+                             }
+                         },
+                         disabled: viewModel.isWorkLocked)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Pomodoro Section
+
+    private var pomodoroSection: some View {
+        VStack(spacing: 10) {
+            if viewModel.isPomodoroRunning {
+                VStack(spacing: 6) {
+                    Text(formattedTime(viewModel.pomodoroTimeRemaining ?? 0))
+                        .font(.system(size: 38, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                    Text(viewModel.currentScenario == .focus ? "Deep focus 🔥" : "Studying hard 📚")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.55))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            } else {
+                HStack {
+                    Text("Focus duration")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                    Spacer()
+                    Stepper(value: $pomodoroSetMinutes, in: 1...120) {
+                        Text("\(pomodoroSetMinutes) min")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                Button {
+                    viewModel.startPomodoro(totalSeconds: pomodoroSetMinutes * 60)
+                } label: {
+                    Text("Start Focus Session")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.purple.opacity(0.5))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.purple.opacity(0.6), lineWidth: 1))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.07))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1))
+        )
+    }
+
+    private func formattedTime(_ seconds: Int) -> String {
+        String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
     // MARK: - Chat Input

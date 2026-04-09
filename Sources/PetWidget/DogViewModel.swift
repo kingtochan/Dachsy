@@ -159,8 +159,15 @@ final class DogViewModel: ObservableObject {
     @Published var apiKey: String = UserDefaults.standard.string(forKey: "claudeApiKey") ?? ""
     @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2:3b"
 
+    // Pomodoro
+    @Published var pomodoroTimeRemaining: Int? = nil
+    @Published var isPomodoroRunning: Bool = false
+    @Published var isWorkLocked: Bool = false
+
     private var decayTimer: Timer?
     private var speechTimer: Timer?
+    private var pomodoroTimer: Timer?
+    private var pomodoroTotalSeconds: Int = 0
     private var isForcedSleeping = false
 
     init() {
@@ -171,6 +178,7 @@ final class DogViewModel: ObservableObject {
     deinit {
         decayTimer?.invalidate()
         speechTimer?.invalidate()
+        pomodoroTimer?.invalidate()
     }
 
     // MARK: - Timer
@@ -184,6 +192,7 @@ final class DogViewModel: ObservableObject {
     }
 
     private func decayStats() {
+        guard !isPomodoroRunning else { return }
         if currentScenario == .sleeping {
             stats.energy = min(100, stats.energy + 8)
             stats.happiness = max(0, stats.happiness - 1)
@@ -207,6 +216,8 @@ final class DogViewModel: ObservableObject {
     func updateScenario() {
         if isForcedSleeping {
             currentScenario = .sleeping
+        } else if isPomodoroRunning {
+            return  // Pomodoro controls scenario directly; don't override
         } else {
             currentScenario = stats.currentScenario
         }
@@ -251,6 +262,54 @@ final class DogViewModel: ObservableObject {
         guard stats.energy > 15 else { speak(text: "Zzz... 💤"); return }
         stats.happiness = min(100, stats.happiness + 18)
         performInteraction(scenario: .excited, duration: 2.0)
+    }
+
+    // MARK: - Pomodoro
+
+    func startPomodoro(totalSeconds: Int) {
+        guard !isPomodoroRunning else { return }
+        isForcedSleeping = false
+        pomodoroTotalSeconds = totalSeconds
+        pomodoroTimeRemaining = totalSeconds
+        isPomodoroRunning = true
+        isWorkLocked = true
+        stats.hunger = 100
+        stats.happiness = 100
+        stats.energy = 100
+        stats.cleanliness = 100
+        currentScenario = .studying
+        fetchAndSpeak(scenario: .studying)
+
+        pomodoroTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.tickPomodoro()
+            }
+        }
+    }
+
+    private func tickPomodoro() {
+        guard let remaining = pomodoroTimeRemaining else { return }
+
+        if remaining <= 0 {
+            finishPomodoro()
+            return
+        }
+
+        let next = remaining - 1
+        pomodoroTimeRemaining = next
+
+        if next == pomodoroTotalSeconds / 2 {
+            currentScenario = .focus
+        }
+    }
+
+    private func finishPomodoro() {
+        pomodoroTimer?.invalidate()
+        pomodoroTimer = nil
+        isPomodoroRunning = false
+        isWorkLocked = false
+        pomodoroTimeRemaining = nil
+        performInteraction(scenario: .excited, duration: 3.0)
     }
 
     private func performInteraction(scenario: DogScenario, duration: Double) {

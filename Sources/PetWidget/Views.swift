@@ -98,7 +98,7 @@ struct ActionButton: View {
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(.white.opacity(0.85))
             }
-            .frame(width: 56, height: 52)
+            .frame(minWidth: 44, maxWidth: .infinity, minHeight: 52)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(disabled
