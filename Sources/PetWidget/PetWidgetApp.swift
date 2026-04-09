@@ -1,6 +1,10 @@
 import SwiftUI
 import AppKit
 
+extension Notification.Name {
+    static let alwaysOnTopChanged = Notification.Name("alwaysOnTopChanged")
+}
+
 // MARK: - App Delegate
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -8,6 +12,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.configureWindow()
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyWindowLevel),
+            name: .alwaysOnTopChanged,
+            object: nil
+        )
     }
 
     private func configureWindow() {
@@ -18,8 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.title = "Dachsy"
 
-        // Normal window level — goes behind other windows like any app
-        window.level = .normal
         window.isMovableByWindowBackground = true
 
         // All three traffic-light buttons fully enabled
@@ -33,6 +41,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let y = screen.visibleFrame.maxY - 440
             window.setFrameOrigin(NSPoint(x: x, y: y))
         }
+
+        applyWindowLevel()
+    }
+
+    @objc private func applyWindowLevel() {
+        guard let window = NSApplication.shared.windows.first else { return }
+        let alwaysOnTop = UserDefaults.standard.bool(forKey: "alwaysOnTop")
+        window.level = alwaysOnTop ? .floating : .normal
     }
 
     // Close button quits the app

@@ -122,6 +122,7 @@ struct SettingsView: View {
     @ObservedObject var viewModel: DogViewModel
     @Environment(\.dismiss) var dismiss
     
+    @State private var draftAlwaysOnTop: Bool = false
     @State private var draftProvider: String = "Claude"
     @State private var draftKey: String = ""
     @State private var draftOllamaModel: String = "llama3"
@@ -135,7 +136,24 @@ struct SettingsView: View {
                 .foregroundColor(.white)
 
             Divider().background(Color.white.opacity(0.3))
-            
+
+            // Always on Top Toggle
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Always on Top")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                    Text("Keep window above all other windows")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                Spacer()
+                Toggle("", isOn: $draftAlwaysOnTop)
+                    .labelsHidden()
+            }
+
+            Divider().background(Color.white.opacity(0.3))
+
             // AI Provider Picker
             VStack(alignment: .leading, spacing: 8) {
                 Text("AI Provider")
@@ -182,6 +200,7 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                     .foregroundColor(.white.opacity(0.7))
                 Button("Save") {
+                    viewModel.alwaysOnTop = draftAlwaysOnTop
                     viewModel.aiProvider = draftProvider
                     viewModel.apiKey = draftKey
                     viewModel.ollamaModel = draftOllamaModel
@@ -195,6 +214,7 @@ struct SettingsView: View {
         .frame(width: 320)
         .background(Color(red: 0.12, green: 0.12, blue: 0.18))
         .onAppear {
+            draftAlwaysOnTop = viewModel.alwaysOnTop
             draftProvider = viewModel.aiProvider
             draftKey = viewModel.apiKey
             draftOllamaModel = viewModel.ollamaModel

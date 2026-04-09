@@ -155,6 +155,7 @@ final class DogViewModel: ObservableObject {
     @Published var isLoadingResponse = false
 
     // New Settings Variables
+    @Published var alwaysOnTop: Bool = UserDefaults.standard.bool(forKey: "alwaysOnTop")
     @Published var aiProvider: String = UserDefaults.standard.string(forKey: "aiProvider") ?? "Claude"
     @Published var apiKey: String = UserDefaults.standard.string(forKey: "claudeApiKey") ?? ""
     @Published var ollamaModel: String = UserDefaults.standard.string(forKey: "ollamaModel") ?? "llama3.2:3b"
@@ -430,8 +431,10 @@ final class DogViewModel: ObservableObject {
     // MARK: - Settings
 
     func saveSettings() {
+        UserDefaults.standard.set(alwaysOnTop, forKey: "alwaysOnTop")
         UserDefaults.standard.set(aiProvider, forKey: "aiProvider")
         UserDefaults.standard.set(apiKey, forKey: "claudeApiKey")
         UserDefaults.standard.set(ollamaModel, forKey: "ollamaModel")
+        NotificationCenter.default.post(name: .alwaysOnTopChanged, object: nil)
     }
 }
