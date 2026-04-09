@@ -139,8 +139,8 @@ extension AIService {
             let mood = (json["mood"] as? Int) ?? (json["mood"] as? Double).map { Int($0) } ?? 0
             return (text, Double(mood))
         }
-        // Fallback: raw text as speech, no mood change
-        return (rawText, 0)
+        // Fallback: model didn't return valid JSON — use a default bark
+        return (DogScenario.default.responses.randomElement() ?? "Woof!", 0)
     }
 }
 
