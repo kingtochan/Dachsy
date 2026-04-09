@@ -8,9 +8,10 @@ A macOS desktop pet — an interactive sausage dog (dachshund) that lives in a w
 
 ## Features
 
-- 10 animated states: happy, hungry, tired, sleeping, excited, dirty, sad, playing, feeding, and default
+- 12 animated states: happy, hungry, tired, sleeping, excited, dirty, sad, playing, feeding, studying, focus, and default
 - Stat system: Hunger, Happiness, Energy, and Cleanliness decay over time
 - Interactive actions: Feed, Play, Clean, and Pet
+- **Work (Pomodoro timer)** — set a focus session duration; all stats stay full while you work, Dachsy studies alongside you and reacts with excitement when the session ends
 - **Chat box** — type a message and Dachsy replies; positive messages boost happiness, negative ones make him sad
 - Speech bubbles with reactions
 - Optional AI responses via **Claude API** or a local **Ollama** model
