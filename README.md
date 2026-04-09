@@ -122,7 +122,7 @@ Sources/PetWidget/
 ├── DogViewModel.swift               — game logic, AI service, stat decay
 ├── ContentView.swift                — main UI
 ├── Views.swift                      — reusable components (stat bars, speech bubble, buttons)
-└── Resources/sausage_dog_scenarios/ — 10 dog state images
+└── Resources/sausage_dog_scenarios/ — dog state images
 ```
 
 ---
