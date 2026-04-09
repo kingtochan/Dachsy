@@ -112,12 +112,18 @@ struct ContentView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 8) {
-            ActionButton(icon: "🍖", label: "Feed") { viewModel.feed() }
+            ActionButton(icon: "🍖", label: "Feed",
+                         action: { viewModel.feed() },
+                         disabled: viewModel.stats.energy <= 15)
             ActionButton(icon: "🎾", label: "Play",
                          action: { viewModel.play() },
                          disabled: viewModel.stats.energy <= 15)
-            ActionButton(icon: "🛁", label: "Clean") { viewModel.clean() }
-            ActionButton(icon: "❤️", label: "Pet") { viewModel.pet() }
+            ActionButton(icon: "🛁", label: "Clean",
+                         action: { viewModel.clean() },
+                         disabled: viewModel.stats.energy <= 15)
+            ActionButton(icon: "❤️", label: "Pet",
+                         action: { viewModel.pet() },
+                         disabled: viewModel.stats.energy <= 15)
         }
         .frame(maxWidth: .infinity)
     }
@@ -145,25 +151,25 @@ struct ContentView: View {
             Button(action: sendChat) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 13))
-                    .foregroundColor(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting
+                    .foregroundColor(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting || viewModel.stats.energy <= 10
                                      ? .white.opacity(0.3)
                                      : .white.opacity(0.85))
                     .padding(7)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.white.opacity(
-                                chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting ? 0.06 : 0.18
+                                chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting || viewModel.stats.energy <= 10 ? 0.06 : 0.18
                             ))
                     )
             }
             .buttonStyle(.plain)
-            .disabled(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting)
+            .disabled(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isInteracting || viewModel.stats.energy <= 10)
         }
     }
 
     private func sendChat() {
         let msg = chatInput.trimmingCharacters(in: .whitespaces)
-        guard !msg.isEmpty, !viewModel.isInteracting else { return }
+        guard !msg.isEmpty, !viewModel.isInteracting, viewModel.stats.energy > 10 else { return }
         viewModel.chat(message: msg)
         chatInput = ""
     }

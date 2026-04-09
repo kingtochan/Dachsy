@@ -135,8 +135,8 @@ extension AIService {
 
         if let data = stripped.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let text = json["text"] as? String,
-           let mood = json["mood"] as? Int {
+           let text = json["text"] as? String {
+            let mood = (json["mood"] as? Int) ?? (json["mood"] as? Double).map { Int($0) } ?? 0
             return (text, Double(mood))
         }
         // Fallback: raw text as speech, no mood change
@@ -161,6 +161,7 @@ final class DogViewModel: ObservableObject {
 
     private var decayTimer: Timer?
     private var speechTimer: Timer?
+    private var isForcedSleeping = false
 
     init() {
         updateScenario()
@@ -186,10 +187,12 @@ final class DogViewModel: ObservableObject {
         if currentScenario == .sleeping {
             stats.energy = min(100, stats.energy + 8)
             stats.happiness = max(0, stats.happiness - 1)
-            
+
             if stats.energy < 100 {
-                return 
+                return
             }
+            // Energy is full — wake up
+            isForcedSleeping = false
         } else {
             stats.hunger = max(0, stats.hunger - 4)
             stats.happiness = max(0, stats.happiness - 2)
@@ -202,20 +205,26 @@ final class DogViewModel: ObservableObject {
     }
 
     func updateScenario() {
-        currentScenario = stats.currentScenario
+        if isForcedSleeping {
+            currentScenario = .sleeping
+        } else {
+            currentScenario = stats.currentScenario
+        }
     }
 
     // MARK: - Actions
 
     func feed() {
+        isForcedSleeping = false
         guard !isInteracting else { return }
-        guard stats.energy > 10 else { speak(text: "Zzz... later... 💤"); return }
+        guard stats.energy > 15 else { speak(text: "Zzz... later... 💤"); return }
         stats.hunger = min(100, stats.hunger + 35)
         stats.happiness = min(100, stats.happiness + 8)
         performInteraction(scenario: .feeding, duration: 2.0)
     }
 
     func play() {
+        isForcedSleeping = false
         guard !isInteracting else { return }
         guard stats.energy > 15 else {
             speak(text: "Too tired... need sleep 😴")
@@ -229,6 +238,7 @@ final class DogViewModel: ObservableObject {
     }
 
     func clean() {
+        isForcedSleeping = false
         guard !isInteracting else { return }
         stats.cleanliness = min(100, stats.cleanliness + 45)
         stats.happiness = min(100, stats.happiness + 12)
@@ -236,8 +246,9 @@ final class DogViewModel: ObservableObject {
     }
 
     func pet() {
+        isForcedSleeping = false
         guard !isInteracting else { return }
-        guard stats.energy > 10 else { speak(text: "Zzz... 💤"); return }
+        guard stats.energy > 15 else { speak(text: "Zzz... 💤"); return }
         stats.happiness = min(100, stats.happiness + 18)
         performInteraction(scenario: .excited, duration: 2.0)
     }
@@ -274,14 +285,61 @@ final class DogViewModel: ObservableObject {
         }
     }
 
+    private func detectAndApplyChatAction(from message: String) -> DogScenario? {
+        let lower = message.lowercased()
+        guard !lower.contains("don't") && !lower.contains("do not") else { return nil }
+        let feedKeywords = ["feed", "eat", "food", "hungry", "treat", "snack", "bone", "meal"]
+        let playKeywords = ["play", "fetch", "run", "walk", "ball", "game", "fun"]
+        let sleepKeywords = ["sleep", "nap", "rest", "bed", "tired", "sleepy", "night"]
+
+        if feedKeywords.contains(where: { lower.contains($0) }) {
+            guard stats.energy > 15 else { return nil }
+            stats.hunger = min(100, stats.hunger + 35)
+            stats.happiness = min(100, stats.happiness + 8)
+            return .feeding
+        } else if playKeywords.contains(where: { lower.contains($0) }) {
+            guard stats.energy > 15 else { return nil }
+            stats.happiness = min(100, stats.happiness + 28)
+            stats.energy = max(0, stats.energy - 22)
+            stats.hunger = max(0, stats.hunger - 8)
+            stats.cleanliness = max(0, stats.cleanliness - 5)
+            return .playing
+        } else if sleepKeywords.contains(where: { lower.contains($0) }) {
+            return .sleeping
+        }
+        return nil
+    }
+
     func chat(message: String) {
         let trimmed = message.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !isInteracting else { return }
+
+        // Any message interrupts forced sleep
+        isForcedSleeping = false
+
+        let triggeredScenario = detectAndApplyChatAction(from: trimmed)
 
         let provider = aiProvider
         let key = apiKey
         let model = ollamaModel
         let capturedStats = stats
+        let actionNote: String
+        switch triggeredScenario {
+        case .feeding:  actionNote = "You are eating right now because the human told you to feed. "
+        case .playing:  actionNote = "You are playing right now because the human asked you to play. "
+        case .sleeping: actionNote = "You are going to sleep because the human told you to rest. "
+        default:        actionNote = ""
+        }
+
+        if triggeredScenario == .sleeping {
+            // Sleep persists until energy is full or interrupted — no fixed duration
+            isForcedSleeping = true
+            currentScenario = .sleeping
+        } else if let scenario = triggeredScenario {
+            performInteraction(scenario: scenario, duration: 2.5)
+        } else {
+            updateScenario()
+        }
 
         isLoadingResponse = true
         Task {
@@ -289,7 +347,7 @@ final class DogViewModel: ObservableObject {
                 provider: provider,
                 apiKey: key,
                 ollamaModel: model,
-                userMessage: trimmed,
+                userMessage: actionNote + trimmed,
                 stats: capturedStats
             )
             self.stats.happiness = min(100, max(0, self.stats.happiness + (delta == 0 ? 2 : delta)))
